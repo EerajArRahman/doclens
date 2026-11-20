@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { methodTypeParameters } from '../evaluation/java'
 
 const label = z.string().trim().min(1).max(2000)
 const httpsUrl = z.url({ protocol: /^https$/ })
@@ -29,6 +30,7 @@ const edge = z.object({
   method_name: z.string().optional().nullable(),
   resolution: z.string().optional().nullable(),
   unresolved_reason: z.string().optional().nullable(),
+  context: z.object({ code: z.string().max(100_000).optional() }).optional(),
 }).refine((value) => value.method_uri || value.target_uri || value.raw_signature ||
   value.signature || value.method_name, 'Missing call target')
 
@@ -43,6 +45,7 @@ const rowSchema = z.object({
     return_type: z.string(),
     parameters: z.array(z.object({ name: label, type: label })),
     throws: z.array(label).default([]),
+    source_context: z.object({ same_type_methods: z.array(label).optional(), field_reads: z.array(label).optional(), field_writes: z.array(label).optional() }).optional(),
   }),
   callers: z.array(edge).default([]),
   callees: z.array(edge).default([]),
@@ -55,10 +58,21 @@ const rowSchema = z.object({
     }).optional(),
   }),
   provenance: z.record(z.string(), z.unknown()),
+  javadoc_metadata: z.object({
+    javadoc_references: z.array(z.object({
+      target: z.string(),
+      resolution: z.string(),
+      method_uri: z.string().optional(),
+      field_uri: z.string().optional(),
+      type_uri: z.string().optional(),
+      external_member_resolution: z.string().optional(),
+    })).optional(),
+  }).optional(),
 })
 
 export type Method = {
   projectId: string
+  inputKind?: 'upload' | 'paste'
   uri: string
   signature: string
   qualifiedName: string
@@ -74,6 +88,10 @@ export type Method = {
     schemaVersion: string
     callGraph?: z.infer<typeof rowSchema>['metadata']['call_graph']
     provenance: Record<string, unknown>
+    typeParameters?: string[]
+    declarations?: string[]
+    resolvedReferences?: string[]
+    dependencies?: { label: string; code: string }[]
   }
 }
 
@@ -86,9 +104,13 @@ async function recordId(kind: string, parts: string[]) {
 
 export async function parseCoCoMUT(projectInput: unknown, jsonl: string) {
   const project = projectSchema.parse(projectInput)
+  const projectId = await recordId('project', [project.repository.toLowerCase(), project.revision, project.artifactUrl])
+  return { project: { id: projectId, data: project }, methods: await parseMethods(projectId, jsonl, project) }
+}
+
+export async function parseMethods(projectId: string, jsonl: string, project?: Project) {
   if (jsonl.length > 2_000_000) throw new Error('JSONL exceeds 2 million characters')
 
-  const projectId = await recordId('project', [project.repository.toLowerCase(), project.revision, project.artifactUrl])
   const seen = new Set<string>()
   const methods: CatalogRecord<Method>[] = []
 
@@ -104,7 +126,9 @@ export async function parseCoCoMUT(projectInput: unknown, jsonl: string) {
       seen.add(method.method_uri)
 
       const path = method.method_uri.split('#')[0].split('/')
-      if (path.some((segment) => !segment || segment === '.' || segment === '..' || segment.includes('\\'))) {
+      // Private imports keep filesystem-style CoCoMUT identifiers as opaque strings.
+      // Only the public importer turns a path into an upstream source link.
+      if (project && path.some((segment) => !segment || segment === '.' || segment === '..' || segment.includes('\\'))) {
         throw new Error('Method URI must start with a repository-relative Java path')
       }
       const anchor = method.line_number ? `#L${method.line_number}` : ''
@@ -116,15 +140,26 @@ export async function parseCoCoMUT(projectInput: unknown, jsonl: string) {
           uri: method.method_uri,
           signature: method.signature,
           qualifiedName: method.qualified_name,
-          sourceUrl: `${project.repository}/blob/${project.revision}/${path.map(encodeURIComponent).join('/')}${anchor}`,
+          sourceUrl: project ? `${project.repository}/blob/${project.revision}/${path.map(encodeURIComponent).join('/')}${anchor}` : '',
           code: method.code,
           javadoc: method.javadoc,
           returnType: method.return_type,
           context: {
             parameters: method.parameters,
             exceptions: method.throws,
-            callers: row.callers,
-            callees: row.callees,
+            typeParameters: methodTypeParameters(method.code),
+            resolvedReferences: row.javadoc_metadata?.javadoc_references?.filter((ref) =>
+              Boolean(ref.method_uri || ref.field_uri || ref.type_uri || ref.external_member_resolution?.startsWith('reflection_')),
+            ).map((ref) => ref.target),
+            callers: row.callers.map(({ context: _context, ...call }) => call),
+            callees: row.callees.map(({ context: _context, ...call }) => call),
+            declarations: [...(method.source_context?.same_type_methods ?? []),
+              ...(method.source_context?.field_reads ?? []), ...(method.source_context?.field_writes ?? [])],
+            dependencies: row.callees.filter((call) => call.context?.code)
+              .slice(0, 12).map((call) => ({
+                label: call.method_uri || call.target_uri || call.raw_signature || call.signature || call.method_name || '',
+                code: call.context!.code!.slice(0, 4000),
+              })),
             schemaVersion: row.metadata.schema_version,
             callGraph: row.metadata.call_graph,
             provenance: row.provenance,
@@ -140,7 +175,7 @@ export async function parseCoCoMUT(projectInput: unknown, jsonl: string) {
   }
 
   if (!methods.length) throw new Error('JSONL contains no method records')
-  return { project: { id: projectId, data: project }, methods }
+  return methods
 }
 
 type CatalogWriter = (

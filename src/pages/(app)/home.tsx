@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { useQuery } from 'deepspace'
+import { useAuth, useQuery } from 'deepspace'
+import { JavaInput, MethodEvaluation } from '../../components/JavaEvaluation'
 import { useSearchParams } from 'react-router-dom'
 import { BookOpen, Code2, ExternalLink } from 'lucide-react'
 import type { Method, Project } from '../../datasets/cocomut'
@@ -9,9 +10,17 @@ const codeBlock = 'mt-4 overflow-x-auto rounded-lg border border-border bg-muted
 const linkClass = 'inline-flex items-center gap-1 underline decoration-border underline-offset-4 hover:decoration-current'
 
 export default function HomePage() {
+  const { userId } = useAuth()
   const projects = useQuery<Project>('projects', { orderBy: 'name', orderDir: 'asc' })
   const [params, setParams] = useSearchParams()
-  const project = projects.records.find((row) => row.recordId === params.get('project')) ?? projects.records[0]
+  const privateProjects = useQuery<{ name: string }>('private_projects', { orderBy: 'name', orderDir: 'asc' })
+  const mine = userId ? privateProjects.records.filter((row) => row.createdBy === userId) : []
+  const desired = params.get('project')
+  const privateProject = mine.find((row) => row.recordId === desired)
+  const publicProject = projects.records.find((row) => row.recordId === desired) ?? projects.records[0]
+  const project = privateProject ?? publicProject
+  const waitingForPrivate = userId && desired && !privateProject && params.get('private') === '1'
+  const select = (id: string, isPrivate = false) => setParams(isPrivate ? { project: id, private: '1' } : { project: id })
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-12">
@@ -20,6 +29,8 @@ export default function HomePage() {
         <p className="mt-2 text-sm text-muted-foreground">Java source, original Javadocs, and CoCoMUT call context.</p>
       </div>
 
+      {userId && <JavaInput key={userId} onSave={(id) => select(id, true)} />}
+      {waitingForPrivate && <p role="status">Private project pending or unavailable.</p>}
       {projects.status === 'loading' && <p role="status">Loading projects…</p>}
       {projects.status === 'error' && <p role="alert">Could not load projects.</p>}
       {projects.status === 'ready' && !project && <p>No projects have been imported.</p>}
@@ -31,29 +42,32 @@ export default function HomePage() {
               <select
                 className="rounded-md border border-border bg-card px-3 py-2"
                 value={project.recordId}
-                onChange={(event) => setParams({ project: event.target.value })}
+                onChange={(event) => select(event.target.value, mine.some((row) => row.recordId === event.target.value))}
               >
                 {projects.records.map((row) => (
                   <option key={row.recordId} value={row.recordId}>{row.data.name} · {row.data.revision.slice(0, 8)}</option>
                 ))}
+                {mine.map((row) => <option key={row.recordId} value={row.recordId}>{row.data.name} · Private</option>)}
               </select>
             </label>
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-              <SourceLink href={project.data.licenseUrl}>{project.data.license}</SourceLink>
-              <SourceLink href={project.data.artifactUrl}>CoCoMUT export</SourceLink>
-              <SourceLink href={project.data.citationUrl}>Citation</SourceLink>
-            </div>
+            {!privateProject && publicProject && <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <SourceLink href={publicProject.data.licenseUrl}>{publicProject.data.license}</SourceLink>
+              <SourceLink href={publicProject.data.artifactUrl}>CoCoMUT export</SourceLink>
+              <SourceLink href={publicProject.data.citationUrl}>Citation</SourceLink>
+            </div>}
           </div>
-          <Methods key={project.recordId} projectId={project.recordId} />
+          {!waitingForPrivate && <Methods key={`${userId}:${project.recordId}`} projectId={project.recordId}
+            isPrivate={Boolean(privateProject)} userId={userId} />}
+
         </>
       )}
     </div>
   )
 }
 
-function Methods({ projectId }: { projectId: string }) {
+function Methods({ projectId, isPrivate, userId }: { projectId: string; isPrivate: boolean; userId: string | null }) {
   const [params, setParams] = useSearchParams()
-  const { records, status } = useQuery<Method>('methods', {
+  const { records, status } = useQuery<Method>(isPrivate ? 'private_methods' : 'methods', {
     where: { projectId },
     orderBy: 'signature',
     orderDir: 'asc',
@@ -74,7 +88,7 @@ function Methods({ projectId }: { projectId: string }) {
               <button
                 type="button"
                 aria-pressed={recordId === selected.recordId}
-                onClick={() => setParams({ project: projectId, method: recordId })}
+                onClick={() => setParams({ project: projectId, method: recordId, ...(isPrivate ? { private: '1' } : {}) })}
                 className="w-full rounded-md px-3 py-2.5 text-left hover:bg-muted aria-pressed:bg-muted aria-pressed:ring-1 aria-pressed:ring-inset aria-pressed:ring-primary/50"
               >
                 <span className="block break-all font-mono text-sm font-semibold">{shortName(data.qualifiedName)}</span>
@@ -86,7 +100,11 @@ function Methods({ projectId }: { projectId: string }) {
           ))}
         </ul>
       </aside>
-      <MethodDetail method={selected.data} />
+      <div className="grid min-w-0 gap-4">
+        <MethodDetail method={selected.data} />
+        {userId ? <MethodEvaluation key={selected.recordId} methodId={selected.recordId} isPrivate={isPrivate} />
+          : <p className="text-sm text-muted-foreground">Sign in to evaluate documentation or add a private project.</p>}
+      </div>
     </div>
   )
 }
@@ -106,7 +124,7 @@ function MethodDetail({ method }: { method: Method }) {
       <header className={card}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h2 className="break-all font-mono text-xl font-semibold">{shortName(method.qualifiedName)}</h2>
-          <span className="text-sm"><SourceLink href={method.sourceUrl}>Upstream source</SourceLink></span>
+          {method.sourceUrl && <span className="text-sm"><SourceLink href={method.sourceUrl}>Upstream source</SourceLink></span>}
         </div>
         <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{method.signature}</p>
       </header>
@@ -150,9 +168,9 @@ function MethodDetail({ method }: { method: Method }) {
       <section className={card}>
         <h3 className="font-semibold">Static call context</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          CoCoMUT schema {context.schemaVersion} · {context.callGraph?.method_matched
+          {method.inputKind === 'paste' ? 'Dependency context unavailable for a pasted method.' : <>CoCoMUT schema {context.schemaVersion} · {context.callGraph?.method_matched
             ? `Bytecode matched (${context.callGraph.algorithm ?? 'static analysis'})`
-            : 'Bytecode match unavailable'}
+            : 'Bytecode match unavailable'}</>}
         </p>
         <div className="mt-4 grid gap-4 xl:grid-cols-2">
           <Calls title="Callers" edges={context.callers} />

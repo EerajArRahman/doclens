@@ -26,5 +26,6 @@ export const integrations: Record<
 > = {
   google: { billing: 'user' },
   composio: { billing: 'user' },
-  // openai: { billing: 'developer', anonymous: true },
+  openai: { billing: 'user' },
+  cloudflare: { billing: 'user' },
 }

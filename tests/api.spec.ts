@@ -16,3 +16,10 @@ test.describe('API tests', () => {
     // If the app loaded and connected, the WS endpoint works
   })
 })
+
+test('Java imports and evaluations require an authenticated bearer', async ({ request }) => {
+  for (const action of ['save-java-input', 'evaluate-java']) {
+    const response = await request.post(`/api/actions/${action}`, { data: {} })
+    expect(response.status()).toBe(401)
+  }
+})

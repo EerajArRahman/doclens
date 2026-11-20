@@ -67,7 +67,7 @@ export class AppRecordRoom extends RecordRoom<Env> {
   }
 
   private async seedSample(): Promise<void> {
-    const version = 'doclens:dbutils-sample:v1'
+    const version = 'doclens:dbutils-sample:v2'
     if (await this.state.storage.get(version)) return
 
     // The bundled sample is the only input to this trusted initialization path.
