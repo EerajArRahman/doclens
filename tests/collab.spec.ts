@@ -183,6 +183,12 @@ test('private imports and evaluation stay within the owning account', async ({ u
       ]) }),
     ]))
   }
+  const repair = owner.page.getByRole('region', { name: 'Javadoc improvement' })
+  if (result.data.warnings.some((warning: string) => warning.includes('insufficient DeepSpace credits'))) {
+    await repair.getByRole('button', { name: 'Generate Improved Javadoc' }).click()
+    await expect(repair.getByRole('alert')).toContainText('insufficient DeepSpace credits', { timeout: 20_000 })
+    await expect(repair.getByRole('textbox', { name: 'Improved Javadoc' })).toHaveCount(0)
+  }
   await owner.page.reload()
   await expect(evaluation).toContainText('Completeness · 33%')
 

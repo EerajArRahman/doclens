@@ -42,7 +42,18 @@ export const evaluationsSchema: CollectionSchema = {
   name: 'evaluations',
   columns: [
     { name: 'methodId', storage: 'text', interpretation: 'plain' },
+    { name: 'ownerId', storage: 'text', interpretation: 'plain' },
     { name: 'report', storage: 'text', interpretation: { kind: 'json' } },
+  ],
+  permissions: privatePermissions,
+}
+
+export const repairsSchema: CollectionSchema = {
+  name: 'javadoc_repairs',
+  columns: [
+    { name: 'methodId', storage: 'text', interpretation: 'plain' },
+    { name: 'revision', storage: 'text', interpretation: { kind: 'json' } },
+    { name: 'approved', storage: 'text', interpretation: 'plain' },
   ],
   permissions: privatePermissions,
 }

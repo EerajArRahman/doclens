@@ -29,3 +29,9 @@ Upload `dbutils-sample.jsonl`. DocLens preserves method URIs and extracted prove
 Hosted evaluation sends bounded excerpts to DeepSpace's OpenAI and Cloudflare Jev integrations using the signed-in user's credits. OpenAI gpt-4o-mini is billed by usage with tier-dependent pricing. The DeepSpace catalog quoted Jev at USD 0.00000005733 per input token when this implementation was verified. Review the current catalog with `npx deepspace integrations info openai/chat-completion` and `npx deepspace integrations info cloudflare/jev`.
 
 [CoCoMUT source and usage](https://github.com/assert-lab/CoCoMUT) · [DbUtils license](https://github.com/apache/commons-dbutils/blob/rel/commons-dbutils-1.8.1/LICENSE.txt) · [DocAgent evaluation framework](https://aclanthology.org/2025.acl-demo.44/)
+
+## Improve Javadoc
+
+After evaluating the original, choose **Generate Improved Javadoc**. Claude Haiku drafts a comment using the source, available CoCoMUT context, and evaluation findings. DocLens runs the same four metrics and saves the draft and review as a private revision. The comparison shows score changes where both versions have a score. Inspect the findings, edit the comment, and re-evaluate your edits before approval. **Approve and save** marks the selected revision. **Copy Javadoc** copies the reviewed comment. The original Java code, Javadoc, and earlier evaluations remain available.
+
+Generation and re-evaluation use the signed-in account's DeepSpace credits. Anthropic charges by usage at tier-dependent rates. Incomplete AI reviews show the metrics that were available. Known contradictions and invalid references must be resolved before approval. Model judgments and extracted context can miss behavior or external contracts, so review the draft before using it in source.

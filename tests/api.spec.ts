@@ -17,8 +17,8 @@ test.describe('API tests', () => {
   })
 })
 
-test('Java imports and evaluations require an authenticated bearer', async ({ request }) => {
-  for (const action of ['save-java-input', 'evaluate-java']) {
+test('Java imports, evaluations, and repairs require an authenticated bearer', async ({ request }) => {
+  for (const action of ['save-java-input', 'evaluate-java', 'generate-javadoc', 'evaluate-javadoc-revision', 'approve-javadoc-revision']) {
     const response = await request.post(`/api/actions/${action}`, { data: {} })
     expect(response.status()).toBe(401)
   }

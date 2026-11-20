@@ -33,12 +33,16 @@ const jevSchema = z.object({
   answers: z.object({ helpfulness: z.object({ type: z.literal('score'), score: z.number().min(0).max(4) }) }),
 })
 
-export async function evaluate(method: Method, integration: ActionTools['integration'], related: { label: string; code: string }[] = []) {
-  const structural = completeness(method)
-  const sources = [{ label: 'Focal method', code: method.code.slice(0, 16_000) },
+export function evaluationSources(method: Method, related: { label: string; code: string }[] = []) {
+  return [{ label: 'Focal method', code: method.code.slice(0, 16_000) },
     ...[...(method.context.dependencies ?? []), ...related].slice(0, 6).map((source) => ({
       ...source, code: source.code.slice(0, 2200),
     }))]
+}
+
+export async function evaluate(method: Method, integration: ActionTools['integration'], related: { label: string; code: string }[] = []) {
+  const structural = completeness(method)
+  const sources = evaluationSources(method, related)
   const javadoc = method.javadoc.slice(0, 10_000)
   const input = {
     javadoc, signature: method.signature, sources,
