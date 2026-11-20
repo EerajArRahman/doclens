@@ -1,0 +1,9 @@
+{
+  "name": "Apache Commons DbUtils",
+  "repository": "https://github.com/apache/commons-dbutils",
+  "revision": "a1034beb6ee791e3a7b2755af4d1d591162ec57f",
+  "license": "Apache-2.0",
+  "licenseUrl": "https://github.com/apache/commons-dbutils/blob/a1034beb6ee791e3a7b2755af4d1d591162ec57f/LICENSE.txt",
+  "artifactUrl": "https://github.com/assert-lab/CoCoMUT/blob/59f6a79cc15e00b7741e5460d0dfc01c88215fc8/evaluation/manual-audit/jsonl/apache__commons-dbutils/method_contexts.jsonl.gz",
+  "citationUrl": "https://arxiv.org/abs/2606.31971"
+}

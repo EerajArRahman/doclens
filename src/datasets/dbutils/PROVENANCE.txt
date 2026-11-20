@@ -1,0 +1,43 @@
+Apache Commons DbUtils — DocLens Phase 2 sample
+
+Upstream Java source and Javadocs are from Apache Commons DbUtils at
+a1034beb6ee791e3a7b2755af4d1d591162ec57f (Apache-2.0).
+https://github.com/apache/commons-dbutils/tree/a1034beb6ee791e3a7b2755af4d1d591162ec57f
+The upstream LICENSE.txt and NOTICE.txt are under public/datasets/dbutils.
+
+CoCoMUT published the extracted export in its Apache-2.0 repository. The
+bundle contains 18 unchanged lines from the pinned public export (CoCoMUT row
+schema 0.4.0). The rows cover DbUtils, BeanProcessor, and QueryRunner across
+JDBC resource handling, transaction helpers, result mapping, and query/batch
+overloads. Each row includes a repository-relative method URI and source line.
+https://github.com/assert-lab/CoCoMUT/blob/59f6a79cc15e00b7741e5460d0dfc01c88215fc8/evaluation/manual-audit/jsonl/apache__commons-dbutils/method_contexts.jsonl.gz
+https://github.com/assert-lab/CoCoMUT/blob/59f6a79cc15e00b7741e5460d0dfc01c88215fc8/evaluation/manual-audit/jsonl/jsonl-manifest.tsv
+https://github.com/assert-lab/CoCoMUT/blob/59f6a79cc15e00b7741e5460d0dfc01c88215fc8/evaluation/results/artifacts/apache__commons-dbutils/extraction_manifest.json
+
+Extraction citation
+Alessandro Botta, Shiven Garisa, Jaya Vardhini Akurathi, Ahsanul Ameen Sabit,
+Trey Woodlief, and Soneya Binta Hossain. CoCoMUT: A Tool for Code-Context Mining
+and Automated Dataset Generation. 2026. https://doi.org/10.48550/arXiv.2606.31971
+
+Dataset choice
+OE25 is organized around EvoSuite-generated tests and test oracles. Its
+Figshare artifact lists CC BY 4.0.
+https://doi.org/10.6084/m9.figshare.28282721
+OE25-dev (TOGBench) mines developer-written tests and likewise prioritizes
+oracle generation and executable test fixtures.
+https://github.com/assert-lab/TOGBench
+A public CTX4DOC release with verifiable redistribution terms was not located.
+The published DbUtils export already contains focal source, Javadocs, and
+method-level call context. The small, single-project sample is for product
+verification and does not represent a benchmark distribution.
+
+Importing another public CoCoMUT extract
+The existing authenticated action endpoint POST /api/actions/import-cocomut
+accepts a JSON body with project (see project.json for shape) and jsonl
+(the uncompressed file contents as a string). Use the app owner's bearer
+session. Only import public data you have permission to redistribute because
+catalog records are visible to anonymous readers. Use a pinned GitHub commit
+and cite the actual export. The importer accepts schemas 0.4.0 and 0.5.0,
+up to 100 rows and 2 million characters per batch. Retrying a batch upserts
+the same IDs after a partial write. The bundled sample imports automatically
+on the first explorer connection and has a durable completion marker.

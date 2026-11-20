@@ -23,6 +23,9 @@ import { AI_CHATS_SCHEMA } from 'deepspace/schema'
 import { registerAgent } from './src/ai/agent.js'
 import { buildTools } from './src/ai/tools.js'
 import { tasks as cronTasks, runTask as runCronTask } from './src/cron.js'
+import { importCoCoMUT } from './src/datasets/cocomut'
+import sampleProject from './src/datasets/dbutils/project.json'
+import sampleJsonl from './src/datasets/dbutils/method-contexts.jsonl?raw'
 import { runJob } from './src/jobs.js'
 import { schemas } from './src/schemas.js'
 import { registerActionRoutes } from './src/server/action-routes.js'
@@ -45,8 +48,42 @@ export const __DO_MANIFEST__ = [
 ] as const satisfies DOManifest
 
 export class AppRecordRoom extends RecordRoom<Env> {
+  private sampleReady?: Promise<void>
+
   constructor(state: DurableObjectState, env: Env) {
     super(state, env, schemas, { ownerUserId: env.OWNER_USER_ID })
+  }
+
+  override async fetch(request: Request): Promise<Response> {
+    const appRoom = this.env.RECORD_ROOMS.idFromName(`app:${this.env.DEEPSPACE_APP_ID}`)
+    if (request.headers.get('Upgrade')?.toLowerCase() === 'websocket' && this.state.id.equals(appRoom)) {
+      this.sampleReady ??= this.seedSample().catch((error: unknown) => {
+        this.sampleReady = undefined
+        throw error
+      })
+      await this.sampleReady
+    }
+    return super.fetch(request)
+  }
+
+  private async seedSample(): Promise<void> {
+    const version = 'doclens:dbutils-sample:v1'
+    if (await this.state.storage.get(version)) return
+
+    // The bundled sample is the only input to this trusted initialization path.
+    await importCoCoMUT(sampleProject, sampleJsonl, async (collection, data, recordId) => {
+      const response = await super.fetch(new Request('https://internal/api/tools/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': this.env.OWNER_USER_ID,
+          'X-App-Action': 'true',
+        },
+        body: JSON.stringify({ tool: 'records.create', params: { collection, data, recordId } }),
+      }))
+      return response.json<{ success: boolean; error?: string }>()
+    })
+    await this.state.storage.put(version, true)
   }
 }
 
