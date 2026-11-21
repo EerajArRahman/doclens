@@ -90,7 +90,7 @@ export function MethodEvaluation({ methodId, isPrivate }: { methodId: string; is
     }
   }
   return (
-    <section className="grid min-w-0 gap-4 rounded-xl border border-border bg-card p-5" aria-label="Documentation evaluation">
+    <section className="grid min-w-0 grid-cols-1 gap-4 rounded-xl border border-border bg-card p-5" aria-label="Documentation evaluation">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold">Documentation evaluation</h3>
         <button type="button" className={button} onClick={run} disabled={busy}>

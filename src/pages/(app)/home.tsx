@@ -27,6 +27,9 @@ export default function HomePage() {
       <div className="mb-8 border-b border-border pb-7">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Method explorer</h1>
         <p className="mt-2 text-sm text-muted-foreground">Java source, original Javadocs, and CoCoMUT call context.</p>
+        <a href="/#public-demo" className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+          View free public demo
+        </a>
       </div>
 
       {userId && <JavaInput key={userId} onSave={(id) => select(id, true)} />}
@@ -37,10 +40,10 @@ export default function HomePage() {
       {project && (
         <>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <label className="grid gap-1.5 text-sm font-medium">
+            <label className="grid min-w-0 max-w-full gap-1.5 text-sm font-medium">
               Project
               <select
-                className="rounded-md border border-border bg-card px-3 py-2"
+                className="min-w-0 max-w-full rounded-md border border-border bg-card px-3 py-2"
                 value={project.recordId}
                 onChange={(event) => select(event.target.value, mine.some((row) => row.recordId === event.target.value))}
               >
@@ -79,7 +82,7 @@ function Methods({ projectId, isPrivate, userId }: { projectId: string; isPrivat
   if (!selected) return <p>No methods have been imported for this project.</p>
 
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
       <aside className="min-w-0 rounded-xl border border-border bg-card">
         <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">Methods <span className="ml-2 text-muted-foreground">{records.length}</span></h2>
         <ul className="max-h-64 overflow-y-auto p-2 lg:max-h-[70vh]">
@@ -100,7 +103,7 @@ function Methods({ projectId, isPrivate, userId }: { projectId: string; isPrivat
           ))}
         </ul>
       </aside>
-      <div className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
         <MethodDetail method={selected.data} />
         {userId ? <MethodEvaluation key={selected.recordId} methodId={selected.recordId} isPrivate={isPrivate} />
           : <p className="text-sm text-muted-foreground">Sign in to evaluate documentation or add a private project.</p>}
@@ -120,7 +123,7 @@ function SourceLink({ href, children }: { href: string; children: ReactNode }) {
 function MethodDetail({ method }: { method: Method }) {
   const { context } = method
   return (
-    <article className="grid min-w-0 gap-4" aria-label="Selected method">
+    <article className="grid min-w-0 grid-cols-1 gap-4" aria-label="Selected method">
       <header className={card}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h2 className="break-all font-mono text-xl font-semibold">{shortName(method.qualifiedName)}</h2>

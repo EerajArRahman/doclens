@@ -102,3 +102,13 @@ test('signed-out visitors can inspect the demo evaluation and repair from the la
   await expect(demo).toContainText('return value * 2;')
   await expect(demo.getByRole('heading', { name: 'Reviewed repair example' })).toBeVisible()
 })
+
+
+test('method explorer links signed-out visitors directly to the public report on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 })
+  await page.goto('/home')
+  await page.getByRole('link', { name: 'View free public demo' }).click()
+  await expect(page).toHaveURL(/\/#public-demo$/)
+  await expect(page.getByRole('heading', { name: 'Public demo report' })).toBeInViewport()
+  await expect(page.getByTestId('nav-sign-in-button')).toHaveCount(0)
+})

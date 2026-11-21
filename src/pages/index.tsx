@@ -16,6 +16,7 @@
  * initial states. `<Seo>` comes first and reads src/seo.ts.
  */
 
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { PublicDemo } from '../components/PublicDemo'
 import { Seo } from '../components/Seo'
@@ -23,6 +24,12 @@ import { APP_NAME } from '../constants'
 import { seo } from '../seo'
 
 export default function Landing() {
+  useEffect(() => {
+    if (window.location.hash === '#public-demo') {
+      document.getElementById('public-demo')?.scrollIntoView()
+    }
+  }, [])
+
   return (
     <>
       <Seo {...seo} path="/" />
@@ -39,7 +46,7 @@ export default function Landing() {
             Browse Java methods and see how DocLens evaluates and repairs Javadocs.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <a href="#public-demo" className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground">
+            <a href="/#public-demo" className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground">
               View free public demo
             </a>
             <Link to="/home" className="rounded-full border border-border px-5 py-2.5 text-sm font-medium">
