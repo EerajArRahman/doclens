@@ -92,3 +92,13 @@ test('persisted catalog loads and an overloaded method is retained on reload', a
   await expect(detail).toContainText('close(final Connection conn)')
   await expect(page.getByRole('heading', { name: 'Methods 18' })).toBeVisible()
 })
+
+test('signed-out visitors can inspect the demo evaluation and repair from the landing page', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'View free public demo' }).click()
+  await expect(page).toHaveURL(/#public-demo$/)
+  const demo = page.getByRole('region', { name: 'Public demo report' })
+  await expect(demo).toContainText('Completeness · 33%')
+  await expect(demo).toContainText('return value * 2;')
+  await expect(demo.getByRole('heading', { name: 'Reviewed repair example' })).toBeVisible()
+})

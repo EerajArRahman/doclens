@@ -23,3 +23,10 @@ test('Java imports, evaluations, and repairs require an authenticated bearer', a
     expect(response.status()).toBe(401)
   }
 })
+
+test('integration proxy denies signed-out AI requests and unconfigured integrations', async ({ request }) => {
+  const configured = await request.post('/api/integrations/openai/chat-completion', { data: {} })
+  expect(configured.status()).toBe(401)
+  const unconfigured = await request.post('/api/integrations/unconfigured/example', { data: {} })
+  expect(unconfigured.status()).toBe(404)
+})

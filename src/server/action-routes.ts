@@ -28,6 +28,7 @@
  */
 
 import type { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import {
   apiWorkerFetch,
   lookupOwn,
@@ -42,7 +43,10 @@ import type { AppContext, Env } from '../../worker.js'
 type ResolveAuth = (req: Request, env: Env) => Promise<VerifyResult | null>
 
 export function registerActionRoutes(app: Hono<AppContext>, resolveAuth: ResolveAuth): void {
-  app.post('/api/actions/:name', async (c) => {
+  app.post('/api/actions/:name', bodyLimit({
+    maxSize: 12_100_000, // Allow a two-million-character JSONL string encoded as JSON Unicode escapes.
+    onError: (c) => c.json({ error: 'Action payload is too large' }, 413),
+  }), async (c) => {
     const auth = await resolveAuth(c.req.raw, c.env)
     if (!auth) return c.json({ error: 'Unauthorized' }, 401)
     // `resolveAuth` may accept a cookie session, which carries no bearer token
@@ -53,7 +57,7 @@ export function registerActionRoutes(app: Hono<AppContext>, resolveAuth: Resolve
     const authHeader = c.req.header('Authorization') ?? ''
     const callerJwt = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
     if (!callerJwt) return c.json({ error: 'Unauthorized' }, 401)
-    // Who called: actions run RBAC-off and can bill the owner, and the
+    // Who called: actions run RBAC-off, and the
     // platform's request log carries no user — this line is the attribution.
     // The name is a decoded path segment, so it is quoted, never interpolated raw.
     console.info(`[action] ${JSON.stringify(c.req.param('name'))} caller=${auth.userId}`)
@@ -62,7 +66,10 @@ export function registerActionRoutes(app: Hono<AppContext>, resolveAuth: Resolve
     // returns the handler argument, env secrets included, as the response.
     const action = lookupOwn(actions, name)
     if (!action) return c.json({ error: 'Action not found' }, 404)
-    const params = await c.req.json<Record<string, unknown>>()
+    const params = await c.req.json<Record<string, unknown>>().catch(() => null)
+    if (!params || typeof params !== 'object' || Array.isArray(params)) {
+      return c.json({ error: 'Expected a JSON object' }, 400)
+    }
     const tools = createActionTools(c.env, auth.userId, callerJwt)
     const result = await action({ userId: auth.userId, params, tools, env: c.env, callerJwt })
     return c.json(result as unknown as Record<string, unknown>)
@@ -104,14 +111,15 @@ function createActionTools(env: Env, userId: string, callerJwt: string): ActionT
       }
     }
     const integrationName = target.name
-    const billingMode = lookupOwn(integrations, integrationName)?.billing ?? 'developer'
+    if (lookupOwn(integrations, integrationName)?.billing !== 'user') {
+      return { success: false, code: 'integration_disabled', error: 'Integration unavailable' }
+    }
 
     // The api-worker bills the JWT subject: owner for developer mode, caller
     // for user mode. It does not accept a client-supplied billing override.
-    const jwt = billingMode === 'developer' ? env.APP_OWNER_JWT : callerJwt
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${jwt}`,
+      Authorization: `Bearer ${callerJwt}`,
     }
 
     // Composio files connections per app, so identify this app as the

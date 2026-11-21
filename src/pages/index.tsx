@@ -17,6 +17,7 @@
  */
 
 import { Link } from 'react-router-dom'
+import { PublicDemo } from '../components/PublicDemo'
 import { Seo } from '../components/Seo'
 import { APP_NAME } from '../constants'
 import { seo } from '../seo'
@@ -27,21 +28,26 @@ export default function Landing() {
       <Seo {...seo} path="/" />
       <div
         data-testid="static-landing"
-        className="flex min-h-screen flex-col items-center justify-center px-6 text-center"
+        className="flex min-h-screen flex-col items-center gap-10 px-6 py-14 text-center"
       >
-        <p className="mb-3 text-sm uppercase tracking-widest text-muted-foreground">{APP_NAME}</p>
-        <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          Explore Java documentation in context
-        </h1>
-        <p className="mb-8 max-w-md text-muted-foreground">
-          Browse source, original Javadocs, and static call relationships from a public Java project.
-        </p>
-        <Link
-          to="/home"
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          Open method explorer
-        </Link>
+        <div>
+          <p className="mb-3 text-sm uppercase tracking-widest text-muted-foreground">{APP_NAME}</p>
+          <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Explore Java documentation in context
+          </h1>
+          <p className="mx-auto mb-6 max-w-md text-muted-foreground">
+            Browse Java methods and see how DocLens evaluates and repairs Javadocs.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <a href="#public-demo" className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground">
+              View free public demo
+            </a>
+            <Link to="/home" className="rounded-full border border-border px-5 py-2.5 text-sm font-medium">
+              Open method explorer
+            </Link>
+          </div>
+        </div>
+        <PublicDemo />
       </div>
     </>
   )

@@ -61,3 +61,30 @@ describe('Java documentation evaluation', () => {
     expect(report.behavior.score).toBeNull()
   })
 })
+
+describe('manually checked doubling examples', () => {
+  it.each([
+    {
+      label: 'correct',
+      comment: '/** Doubles the input using Java int arithmetic.\n * @param value the integer to double\n * @return the doubled value, with int overflow semantics\n */',
+      coverage: 1,
+      reference: 'confirmed',
+    },
+    {
+      label: 'incomplete',
+      comment: '/** Doubles the input. */',
+      coverage: 1 / 3,
+      reference: undefined,
+    },
+    {
+      label: 'incorrect',
+      comment: '/** Returns three times the input.\n * @param number input\n */',
+      coverage: 1 / 3,
+      reference: 'invalid',
+    },
+  ])('checks structure and references for $label documentation', ({ comment, coverage, reference }) => {
+    const example = pastedMethod('project', code, comment)
+    expect(completeness(example).score).toBe(coverage)
+    expect(truthfulness(example, []).findings.map(({ status }) => status)).toEqual(reference ? [reference] : [])
+  })
+})
